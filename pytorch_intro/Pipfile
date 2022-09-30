@@ -1,0 +1,23 @@
+[[source]]
+url = "https://pypi.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[packages]
+torch = "*"
+torchvision = "*"
+torchaudio = "*"
+pandas = "*"
+jupyter = "*"
+matplotlib = "*"
+scipy = "*"
+scikit-learn = "*"
+pillow = "*"
+tqdm = "*"
+cython = "*"
+jupyterlab = "*"
+
+[dev-packages]
+
+[requires]
+python_version = "3.9"
