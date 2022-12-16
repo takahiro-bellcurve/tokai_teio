@@ -9,6 +9,9 @@ install = "*"
 torch = "*"
 torchvision = "*"
 torchaudio = "*"
+ipykernel = "*"
+matplotlib = "*"
+numpy = "*"
 
 [dev-packages]
 
