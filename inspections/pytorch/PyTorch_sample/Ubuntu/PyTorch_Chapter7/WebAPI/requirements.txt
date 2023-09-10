@@ -1,3 +1,0 @@
-smart-getenv
-flask
-gunicorn
