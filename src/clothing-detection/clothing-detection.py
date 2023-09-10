@@ -9,7 +9,7 @@ from PIL import Image
 import ailia
 
 # import original modules
-sys.path.append('../../utils/clothing-detection')
+sys.path.append('../../utils/clothing_detection')
 from arg_utils import get_base_parser, update_parser, get_savepath  # noqa: E402
 from model_utils import check_and_download_models  # noqa: E402
 from detector_utils import plot_results, load_image  # noqa: E402
