@@ -12,6 +12,8 @@ ipykernel = "*"
 matplotlib = "*"
 scikit-learn = "*"
 opencv-python = "*"
+rembg = "*"
+tensorboard = "*"
 
 [dev-packages]
 
