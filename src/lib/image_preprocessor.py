@@ -25,6 +25,30 @@ class ImagePreprocessor:
             return None
 
     @staticmethod
+    def remove_background(image):
+        """
+        PIL.Imageオブジェクトから背景を削除する関数。
+
+        :param image: 背景を削除するPIL.Imageオブジェクト
+        :return: 背景が削除されたPIL.Imageオブジェクト
+        """
+        try:
+            # PIL.Imageオブジェクトをバイト列に変換
+            img_bytes = BytesIO()
+            image.save(img_bytes, format=image.format)
+
+            # 背景を削除
+            output_bytes = remove(img_bytes.getvalue())
+
+            # バイト列からPIL.Imageオブジェクトを再生成
+            result_image = Image.open(BytesIO(output_bytes))
+            return result_image
+
+        except Exception as e:
+            print(f"An error occurred while removing the background: {e}")
+            return None
+
+    @staticmethod
     def trim(image, border_color=(255, 255, 255, 0)):
         """
         画像の余白をトリムする。
@@ -100,3 +124,13 @@ class ImagePreprocessor:
         :return: グレースケール化されたPIL.Imageオブジェクト
         """
         return image.convert('L')
+
+    @staticmethod
+    def save_image(image, path):
+        """
+        PIL.Imageオブジェクトを指定されたパスに保存する。
+
+        :param image: PIL.Imageオブジェクト
+        :param path: 保存先のパス
+        """
+        image.save(path)
