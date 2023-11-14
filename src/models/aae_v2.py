@@ -13,10 +13,8 @@ from torch.autograd import Variable
 from torchvision.utils import save_image
 import torchvision.transforms as transforms
 from torch.utils.tensorboard import SummaryWriter
-from torchvision import datasets
 
 
-# from mnist_img_dataloader import load_mnist_data
 from src.lib.image_dataset.image_dataset import ImageDataset
 
 #######################################################
@@ -26,7 +24,7 @@ from src.lib.image_dataset.image_dataset import ImageDataset
 parser = argparse.ArgumentParser("Basic aae model by hyu")
 parser.add_argument("--n_epochs", type=int, default=100,
                     help="number of epochs of training")
-parser.add_argument("--batch_size", type=int, default=128,
+parser.add_argument("--batch_size", type=int, default=256,
                     help="size of the batches")
 
 parser.add_argument("--lr", type=float, default=0.0002,
@@ -43,13 +41,14 @@ parser.add_argument("--img_size", type=int, default=32,
 parser.add_argument("--channels", type=int, default=1,
                     help="number of image channels")
 
-parser.add_argument("--img_dir", type=str, default='outputs/aae_v1',
+parser.add_argument("--img_dir", type=str, default='outputs/aae_v2',
                     help="number of classes of image datasets")
 
 args = parser.parse_args()
 print(args)
 
 DATASET_DIR = 'preprocessed_images_512'
+FILE_NAME = f"aae_v2_{args.img_size}_ch{args.channels}_ldim_{args.latent_dim}_bs_{args.batch_size}"
 
 # config cuda
 cuda = torch.cuda.is_available()
@@ -75,11 +74,12 @@ class Encoder(nn.Module):
             nn.Conv2d(16, 32, 3, stride=2, padding=1),
             nn.BatchNorm2d(32),
             nn.LeakyReLU(0.2, inplace=True),
-            nn.AdaptiveMaxPool2d((4, 4))  # 出力サイズを4x4に適応させる
+            nn.Conv2d(32, 64, 3, stride=2, padding=1),
+            nn.BatchNorm2d(64),
+            nn.LeakyReLU(0.2, inplace=True),
+            nn.AdaptiveMaxPool2d((4, 4))
         )
-
-        # フラット化された特徴のサイズを計算
-        self.flattened_size = 32 * 4 * 4
+        self.flattened_size = 64 * 4 * 4  # 更新されたフラット化された特徴のサイズ
 
         self.fc = nn.Sequential(
             nn.Linear(self.flattened_size, 512),
@@ -114,7 +114,13 @@ class Decoder(nn.Module):
             nn.Conv2d(32, 32, 3, stride=1, padding=1),
             nn.BatchNorm2d(32, 0.8),
             nn.LeakyReLU(0.2, inplace=True),
+            nn.Conv2d(32, 64, 3, stride=1, padding=1),
+            nn.BatchNorm2d(64, 0.8),
+            nn.LeakyReLU(0.2, inplace=True),
             nn.Upsample(scale_factor=2),
+            nn.Conv2d(64, 32, 3, stride=1, padding=1),
+            nn.BatchNorm2d(32, 0.8),
+            nn.LeakyReLU(0.2, inplace=True),
             nn.Conv2d(32, 16, 3, stride=1, padding=1),
             nn.BatchNorm2d(16, 0.8),
             nn.LeakyReLU(0.2, inplace=True),
@@ -136,6 +142,8 @@ class Discriminator(nn.Module):
         self.model = nn.Sequential(
             nn.Linear(latent_dim, 512),
             nn.LeakyReLU(0.2, inplace=True),
+            nn.Linear(512, 512),
+            nn.LeakyReLU(0.2, inplace=True),
             nn.Linear(512, 256),
             nn.LeakyReLU(0.2, inplace=True),
             nn.Linear(256, 1),
@@ -155,12 +163,18 @@ class Discriminator(nn.Module):
 writer = SummaryWriter()
 
 # data
-transform = transforms.Compose([
-    transforms.Resize((args.img_size, args.img_size)),
-    # transforms.Grayscale(),
-    transforms.ToTensor(),
-])
-# train_labeled_loader = load_mnist_data('./dataset/mnist/')[1]
+if args.channels == 3:
+    transform = transforms.Compose([
+        transforms.Resize((args.img_size, args.img_size)),
+        transforms.ToTensor(),
+    ])
+elif args.channels == 1:
+    transform = transforms.Compose([
+        transforms.Resize((args.img_size, args.img_size)),
+        transforms.Grayscale(),
+        transforms.ToTensor(),
+    ])
+
 dataset = ImageDataset(
     directory=f'data/{DATASET_DIR}', transform=transform)
 train_labeled_loader = torch.utils.data.DataLoader(
@@ -207,7 +221,6 @@ def sample_image(n_row, epoch, img_dir):
 train_logs = []
 # training phase
 for epoch in range(args.n_epochs):
-    # for i, (x, idx) in enumerate(train_labeled_loader):
     for i, x in enumerate(train_labeled_loader):
 
         valid = Variable(Tensor(x.shape[0], 1).fill_(1.0), requires_grad=False)
@@ -255,10 +268,9 @@ for epoch in range(args.n_epochs):
     )
 
     sample_image(n_row=5, epoch=epoch,
-                 img_dir=f"{args.img_dir}_{args.img_size}_ch{args.channels}")
+                 img_dir=f"{args.img_dir}_{args.img_size}_ch{args.channels}_ldim_{args.latent_dim}_bs_{args.batch_size}")
 
 now = datetime.now().strftime("%Y-%m-%d_%H:%M")
 df = pd.DataFrame(train_logs)
-df.to_csv(f"logs/aae_basic_train_logs_{now}.csv")
-torch.save(
-    encoder, f'trained_models/aae_{args.img_size}_ch{args.channels}_encoder_{now}.pth')
+df.to_csv(f"logs/aae_v2_train_logs_{now}.csv")
+torch.save(encoder, f'trained_models/aae_v2_encoder_{now}.pth')
