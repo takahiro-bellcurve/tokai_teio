@@ -1,4 +1,5 @@
 import requests
+from torchvision import transforms
 from PIL import Image, ImageOps, ImageChops
 from io import BytesIO
 from rembg import remove
@@ -65,7 +66,7 @@ class ImagePreprocessor:
         return image  # トリムする必要がない場合
 
     @staticmethod
-    def resize(image, width, height):
+    def resize(image, width, height, to_tensor=False):
         """
         画像のサイズを調整するメソッド。
 
@@ -97,6 +98,9 @@ class ImagePreprocessor:
         final_image = Image.new(image.mode, (width, height), background_color)
         final_image.paste(resized_image, ((
             width - resized_image.width) // 2, (height - resized_image.height) // 2))
+
+        if to_tensor:
+            final_image = transforms.ToTensor()(final_image)
 
         return final_image
 
