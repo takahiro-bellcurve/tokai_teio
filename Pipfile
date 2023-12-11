@@ -14,6 +14,7 @@ scikit-learn = "*"
 opencv-python = "*"
 tensorboard = "*"
 rembg = {extras = ["gpu"], version = "*"}
+faiss-gpu = "*"
 
 [dev-packages]
 
