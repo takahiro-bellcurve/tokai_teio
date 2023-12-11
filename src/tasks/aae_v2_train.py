@@ -156,7 +156,8 @@ for epoch in range(args.n_epochs):
 finished_at = datetime.now().strftime("%Y-%m-%d_%H:%M")
 df = pd.DataFrame(train_logs)
 df.to_csv(f"logs/{file_name}_{finished_at}.csv")
-torch.save(
-    encoder, f'trained_models/encoder/{file_name}_{finished_at}.pth')
-torch.save(
-    decoder, f'trained_models/decoder/{file_name}_{finished_at}.pth')
+torch.save(encoder.state_dict(),
+           f'trained_models/encoder/{file_name}_{finished_at}.pth')
+
+torch.save(decoder.state_dict(),
+           f'trained_models/decoder/{file_name}_{finished_at}.pth')
