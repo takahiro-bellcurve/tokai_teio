@@ -59,9 +59,6 @@ file_name = f"{MODEL_NAME}_{args.img_size}_ch{args.channels}_ldim_{args.latent_d
 # define Tensor
 Tensor = torch.cuda.FloatTensor
 
-# define tensorboard
-writer = SummaryWriter()
-
 # define data_loader
 data_loader = create_data_loader(
     img_size=args.img_size, batch_size=args.batch_size, channels=args.channels)
@@ -112,7 +109,6 @@ def sample_image(n_row, epoch, img_dir):
         img_dir, "%depoch.png" % epoch), nrow=n_row, normalize=True)
 
 
-train_logs = []
 for epoch in range(args.n_epochs):
     for i, x in enumerate(data_loader):
 

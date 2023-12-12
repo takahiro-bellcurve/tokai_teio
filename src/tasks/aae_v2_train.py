@@ -59,9 +59,6 @@ file_name = f"{MODEL_NAME}_{args.img_size}_ch{args.channels}_ldim_{args.latent_d
 # define Tensor
 Tensor = torch.cuda.FloatTensor
 
-# define tensorboard
-writer = SummaryWriter()
-
 # define data_loader
 data_loader = create_data_loader(
     img_size=args.img_size, batch_size=args.batch_size, channels=args.channels)
