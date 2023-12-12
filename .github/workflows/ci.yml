@@ -1,9 +1,7 @@
 name: Run tests
 
 on:
-  push:
-    branches:
-      - main
+  push
 
 jobs:
   test:
@@ -18,4 +16,4 @@ jobs:
 
       - name: Run tests
         run: |
-          pytest test/
+          python -m pytest test/
