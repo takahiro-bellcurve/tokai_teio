@@ -10,6 +10,20 @@ class ImagePreprocessor:
         pass
 
     @staticmethod
+    def open_image(image_path):
+        """
+        指定されたパスから画像を開き、PIL.Imageオブジェクトとして返す。
+
+        :param image_path: 開く画像のパス
+        :return: PIL.Imageオブジェクト
+        """
+        try:
+            return Image.open(image_path)
+        except Exception as e:
+            print(f"An error occurred while opening the image: {e}")
+            return None
+
+    @staticmethod
     def download_image(image_url):
         """
         指定されたURLから画像をダウンロードし、PIL.Imageオブジェクトとして返す。
