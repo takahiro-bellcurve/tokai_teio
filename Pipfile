@@ -8,7 +8,6 @@ torch = "*"
 pandas = "*"
 torchvision = "*"
 pillow = "*"
-ipykernel = "*"
 matplotlib = "*"
 scikit-learn = "*"
 opencv-python = "*"
@@ -16,6 +15,9 @@ tensorboard = "*"
 rembg = {extras = ["gpu"], version = "*"}
 faiss-gpu = "*"
 pytest = "*"
+wandb = "*"
+python-dotenv = "*"
+ipykernel = "*"
 
 [dev-packages]
 
