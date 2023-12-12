@@ -10,7 +10,7 @@ import torch
 import torch.nn as nn
 from torch.autograd import Variable
 from torchvision.utils import save_image
-from torch.utils.tensorboard import SummaryWriter
+import wandb
 
 from src.networks.v3 import Encoder, Decoder, Discriminator
 from src.lib.create_data_loader import create_data_loader
@@ -59,9 +59,6 @@ file_name = f"{MODEL_NAME}_{args.img_size}_ch{args.channels}_ldim_{args.latent_d
 # define Tensor
 Tensor = torch.cuda.FloatTensor
 
-# define tensorboard
-writer = SummaryWriter()
-
 # define data_loader
 data_loader = create_data_loader(
     img_size=args.img_size, batch_size=args.batch_size, channels=args.channels)
@@ -90,10 +87,18 @@ discriminator.cuda()
 adversarial_loss.cuda()
 reconstruction_loss.cuda()
 
+run = wandb.init(
+    project="tokai_teio",
+    config={
+        "learning_rate": args.lr,
+        "epochs": args.n_epochs,
+    },
+)
 
 #######################################################
 # Training part
 #######################################################
+
 
 def sample_image(n_row, epoch, img_dir):
     if not os.path.exists(img_dir):
@@ -104,7 +109,6 @@ def sample_image(n_row, epoch, img_dir):
         img_dir, "%depoch.png" % epoch), nrow=n_row, normalize=True)
 
 
-train_logs = []
 for epoch in range(args.n_epochs):
     for i, x in enumerate(data_loader):
 
@@ -134,16 +138,7 @@ for epoch in range(args.n_epochs):
         D_loss.backward()
         optimizer_D.step()
 
-        writer.add_scalar('G_loss', G_loss.item(), epoch)
-        writer.add_scalar('D_loss', D_loss.item(), epoch)
-
-        # save log
-        log = {
-            'epoch': epoch,
-            'G_loss': G_loss.item(),
-            'D_loss': D_loss.item()
-        }
-        train_logs.append(log)
+        wandb.log({"G_loss": G_loss.item(), "D_loss": D_loss.item()})
     # print loss
     print(
         "[Epoch %d/%d] [G loss: %f] [D loss: %f]"
@@ -154,8 +149,7 @@ for epoch in range(args.n_epochs):
                  img_dir=f"{args.img_dir}_{args.img_size}_ch{args.channels}_ldim_{args.latent_dim}_bs_{args.batch_size}")
 
 finished_at = datetime.now().strftime("%Y-%m-%d_%H:%M")
-df = pd.DataFrame(train_logs)
-df.to_csv(f"logs/{file_name}_{finished_at}.csv")
+wandb.finish()
 torch.save(encoder.state_dict(),
            f'trained_models/encoder/{file_name}_{finished_at}.pth')
 
