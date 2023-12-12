@@ -15,6 +15,7 @@ opencv-python = "*"
 tensorboard = "*"
 rembg = {extras = ["gpu"], version = "*"}
 faiss-gpu = "*"
+pytest = "*"
 
 [dev-packages]
 
