@@ -20,8 +20,8 @@ class Encoder(nn.Module):
             nn.LeakyReLU(0.2, inplace=True),
         )
 
-        self.fc1 = nn.Linear(64 * img_size * img_size, 512)
-        self.fc2 = nn.Linear(512, 1024)
+        self.fc1 = nn.Linear(64 * img_size * img_size, 2048)
+        self.fc2 = nn.Linear(2048, 1024)
         self.fc3 = nn.Linear(1024, self.latent_dim)
 
     def forward(self, img):
