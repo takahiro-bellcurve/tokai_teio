@@ -17,6 +17,7 @@ pytest = "*"
 wandb = "*"
 python-dotenv = "*"
 ipykernel = "*"
+streamlit = "*"
 
 [dev-packages]
 
