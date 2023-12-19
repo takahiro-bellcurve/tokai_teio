@@ -97,7 +97,7 @@ def check_faiss_and_model():
 bt1, bt2, bt3 = st.columns(3)
 
 with bt1:
-    if st.button("Load Faiss Index and Model"):
+    if st.button("Load Faiss Index and Model", type="primary"):
         status = load_faiss_and_model(model_name)
         if status:
             st.success("Loaded Faiss Index and Model")
@@ -140,6 +140,9 @@ def encode_image(model, image, img_size):
 
 
 def search_similar_image(upload_image, model_name):
+    if "model" not in st.session_state:
+        st.error("Load Faiss Index and Modelを最初に実行してください。")
+        return
     logger.info("Start searching similar image")
     print("Start searching similar image")
     st.spinner("Searching Similar Image...")
