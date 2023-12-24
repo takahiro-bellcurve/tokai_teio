@@ -144,6 +144,16 @@ class ImagePreprocessor:
         return image.convert('L')
 
     @staticmethod
+    def vector_to_image(vector):
+        """
+        tensorベクトルをPIL.Imageオブジェクトに変換する。
+
+        :param vector: ベクトル
+        :return: PIL.Imageオブジェクト
+        """
+        return transforms.ToPILImage()(vector)
+
+    @staticmethod
     def save_image(image, path):
         """
         PIL.Imageオブジェクトを指定されたパスに保存する。
