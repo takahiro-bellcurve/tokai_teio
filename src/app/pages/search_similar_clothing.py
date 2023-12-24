@@ -166,11 +166,9 @@ if "similar_images" in st.session_state:
     col1, col2 = st.columns(2)
     display_images = st.session_state["similar_images"]
     with col1:
-        st.write("Column 1")
         for img in display_images[:3]:
             st.image(img)
 
     with col2:
-        st.write("Column 2")
         for img in display_images[3:]:
             st.image(img)
