@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "fa1d02a2ea5cb824c6fbe862bdff46ab7562e874e93898454f59375e3a32ad43"
+            "sha256": "6e4a44d4a0decdfc63a61cc9ec8b0a334f7d0ac822bbe474ebf3898aaeafec37"
         },
         "pipfile-spec": 6,
         "requires": {
@@ -279,6 +279,14 @@
             ],
             "markers": "python_version >= '3.5'",
             "version": "==5.1.1"
+        },
+        "dnspython": {
+            "hashes": [
+                "sha256:57c6fbaaeaaf39c891292012060beb141791735dbb4004798328fc2c467402d8",
+                "sha256:8dcfae8c7460a2f84b4072e26f1c9f4101ca20c071649cb7c34e8b6a93d58984"
+            ],
+            "markers": "python_version >= '3.8' and python_version < '4.0'",
+            "version": "==2.4.2"
         },
         "docker-pycreds": {
             "hashes": [
@@ -668,6 +676,14 @@
             ],
             "markers": "python_version >= '3.8'",
             "version": "==0.41.1"
+        },
+        "loguru": {
+            "hashes": [
+                "sha256:003d71e3d3ed35f0f8984898359d65b79e5b21943f78af86aa5491210429b8eb",
+                "sha256:e671a53522515f34fd406340ee968cb9ecafbc4b36c679da03c18fd8d0bd51ac"
+            ],
+            "markers": "python_version >= '3.5'",
+            "version": "==0.7.2"
         },
         "markdown-it-py": {
             "hashes": [
@@ -1161,6 +1177,14 @@
             ],
             "index": "pypi",
             "version": "==10.1.0"
+        },
+        "pinecone-client": {
+            "hashes": [
+                "sha256:2c1cc1d6648b2be66e944db2ffa59166a37b9164d1135ad525d9cd8b1e298168",
+                "sha256:5bf496c01c2f82f4e5c2dc977cc5062ecd7168b8ed90743b09afcc8c7eb242ec"
+            ],
+            "index": "pypi",
+            "version": "==2.2.4"
         },
         "platformdirs": {
             "hashes": [
@@ -1841,11 +1865,11 @@
         },
         "setuptools": {
             "hashes": [
-                "sha256:1e8fdff6797d3865f37397be788a4e3cba233608e9b509382a2777d25ebde7f2",
-                "sha256:735896e78a4742605974de002ac60562d286fa8051a7e2299445e8e8fbb01aa6"
+                "sha256:385eb4edd9c9d5c17540511303e39a147ce2fc04bc55289c322b9e5904fe2c05",
+                "sha256:be1af57fc409f93647f2e8e4573a142ed38724b8cdd389706a867bb4efcf1e78"
             ],
             "markers": "python_version >= '3.8'",
-            "version": "==69.0.2"
+            "version": "==69.0.3"
         },
         "six": {
             "hashes": [

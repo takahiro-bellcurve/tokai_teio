@@ -18,6 +18,7 @@ wandb = "*"
 python-dotenv = "*"
 ipykernel = "*"
 streamlit = "*"
+pinecone-client = "*"
 
 [dev-packages]
 
