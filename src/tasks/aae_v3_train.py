@@ -17,7 +17,7 @@ from src.lib.create_data_loader import create_data_loader
 
 MODEL_NAME = "aae_v3"
 DATASET_DIR = 'preprocessed_images_512'
-SEND_WANDB = False
+SEND_WANDB = True
 
 #######################################################
 # Parameter setting
