@@ -5,37 +5,45 @@ class Decoder(nn.Module):
     def __init__(self, output_channels, img_size, latent_dim):
         super(Decoder, self).__init__()
 
+        self.exec_count = False
         self.output_channels = output_channels
         self.img_size = img_size
         self.latent_dim = latent_dim
 
-        # Fully connected layers
-        self.fc1 = nn.Linear(self.latent_dim, 1024)
-        self.fc2 = nn.Linear(1024, 2048)
-        self.fc3 = nn.Linear(2048, 64 * img_size * img_size)
+        self.linear1 = nn.Linear(self.latent_dim, 400)
+        self.linear2 = nn.Linear(400, 4000)
+        self.linear3 = nn.Linear(4000, 128 * 20 * 20)
 
-        # Convolutional layers to reshape to original image size
-        self.conv_blocks = nn.Sequential(
-            nn.Conv2d(64, 64, 3, stride=1, padding=1),
-            nn.BatchNorm2d(64),
-            nn.LeakyReLU(0.2, inplace=True),
-            # Upsample to increase spatial dimensions
-            nn.Upsample(scale_factor=2),
-            nn.Conv2d(64, 32, 3, stride=1, padding=1),
-            nn.BatchNorm2d(32),
-            nn.LeakyReLU(0.2, inplace=True),
-            nn.Conv2d(32, 16, 3, stride=1, padding=1),
-            nn.BatchNorm2d(16),
-            nn.LeakyReLU(0.2, inplace=True),
-            nn.Conv2d(16, self.output_channels, 3, stride=1, padding=1),
-            nn.Tanh()  # Output layer to match the original image format
-        )
+        self.deconv1 = nn.ConvTranspose2d(
+            128, 64, 5, stride=3, padding=2, output_padding=2)
+        self.deconv2 = nn.ConvTranspose2d(
+            64, self.output_channels, 5, stride=1, padding=0)
+
+        self.batchnorm = nn.BatchNorm2d(64)
+        self.leakyrelu = nn.LeakyReLU(0.2, inplace=True)
+        self.tanh = nn.Tanh()
 
     def forward(self, z):
-        out = self.fc1(z)
-        out = self.fc2(out)
-        out = self.fc3(out)
-        # Reshape to match the input shape of the first conv layer
-        out = out.view(out.size(0), 64, self.img_size, self.img_size)
-        img = self.conv_blocks(out)
-        return img
+        x = self.linear1(z)
+        print(f"linear1: {x.shape}") if self.exec_count == False else None
+        x = self.leakyrelu(x)
+        x = self.linear2(x)
+        print(f"linear2: {x.shape}") if self.exec_count == False else None
+        x = self.leakyrelu(x)
+        x = self.linear3(x)
+        print(f"linear3: {x.shape}") if self.exec_count == False else None
+        x = self.leakyrelu(x)
+
+        x = x.view(x.size(0), 128, 20, 20)
+        print(
+            f"flattened: {x.shape}") if self.exec_count == False else None
+        x = self.deconv1(x)
+        print(f"deconv1: {x.shape}") if self.exec_count == False else None
+        x = self.batchnorm(x)
+        x = self.leakyrelu(x)
+        x = self.deconv2(x)
+        print(f"deconv2: {x.shape}") if self.exec_count == False else None
+        x = self.tanh(x)  # Often used for normalizing output to [-1, 1]
+
+        self.exec_count = True
+        return x

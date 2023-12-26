@@ -15,35 +15,21 @@ import wandb
 from src.networks.v3 import Encoder, Decoder, Discriminator
 from src.lib.create_data_loader import create_data_loader
 
-#######################################################
-# hyperparameter setting
-#######################################################
-
-parser = argparse.ArgumentParser()
-parser.add_argument("--n_epochs", type=int, default=100,
-                    help="number of epochs of training")
-parser.add_argument("--batch_size", type=int, default=256,
-                    help="size of the batches")
-parser.add_argument("--lr", type=float, default=0.0002,
-                    help="adam: learning rate")
-parser.add_argument("--b1", type=float, default=0.5,
-                    help="adam: decay of first order momentum of gradient")
-parser.add_argument("--b2", type=float, default=0.999,
-                    help="adam: decay of first order momentum of gradient")
-parser.add_argument("--latent_dim", type=int, default=20,
-                    help="dimensionality of the latent code")
-parser.add_argument("--img_size", type=int, default=32,
-                    help="size of each image dimension")
-parser.add_argument("--channels", type=int, default=1,
-                    help="number of image channels")
-parser.add_argument("--img_dir", type=str, default='outputs/aae_v3',
-                    help="number of classes of image datasets")
-
-args = parser.parse_args()
-print(args)
-
 MODEL_NAME = "aae_v3"
 DATASET_DIR = 'preprocessed_images_512'
+SEND_WANDB = False
+
+#######################################################
+# Parameter setting
+#######################################################
+N_EPOCHS = 50
+BATCH_SIZE = 512
+LR = 0.0002
+B1 = 0.5
+B2 = 0.999
+LATENT_DIM = 20
+IMG_SIZE = 64
+CHANNELS = 3
 
 #######################################################
 # Preparing part
@@ -54,21 +40,21 @@ if not torch.cuda.is_available():
     raise Exception("No GPU found, please run without --cuda")
 
 # define file name
-file_name = f"{MODEL_NAME}_{args.img_size}_ch{args.channels}_ldim_{args.latent_dim}_bs_{args.batch_size}_lr_{args.lr}_b1_{args.b1}_b2_{args.b2}"
+file_name = f"{MODEL_NAME}_{IMG_SIZE}_ch{CHANNELS}_ldim_{LATENT_DIM}_bs_{BATCH_SIZE}_lr_{LR}_b1_{B1}_b2_{B2}"
 
 # define Tensor
 Tensor = torch.cuda.FloatTensor
 
 # define data_loader
 data_loader = create_data_loader(
-    img_size=args.img_size, batch_size=args.batch_size, channels=args.channels)
+    img_size=IMG_SIZE, batch_size=BATCH_SIZE, channels=CHANNELS)
 
 # define model
 # 1) generator
-encoder = Encoder(args.channels, args.img_size, args.latent_dim)
-decoder = Decoder(args.channels, args.img_size, args.latent_dim)
+encoder = Encoder(CHANNELS, IMG_SIZE, LATENT_DIM)
+decoder = Decoder(CHANNELS, IMG_SIZE, LATENT_DIM)
 # 2) discriminator
-discriminator = Discriminator(args.latent_dim)
+discriminator = Discriminator(LATENT_DIM)
 
 # define loss function
 adversarial_loss = nn.BCELoss()
@@ -76,9 +62,9 @@ reconstruction_loss = nn.MSELoss()
 
 # define optimizer
 optimizer_G = torch.optim.Adam(itertools.chain(encoder.parameters(
-), decoder.parameters()), lr=args.lr, betas=(args.b1, args.b2))
+), decoder.parameters()), lr=LR, betas=(B1, B2))
 optimizer_D = torch.optim.Adam(
-    discriminator.parameters(), lr=args.lr, betas=(args.b1, args.b2))
+    discriminator.parameters(), lr=LR, betas=(B1, B2))
 
 # move to cuda
 encoder.cuda()
@@ -87,13 +73,19 @@ discriminator.cuda()
 adversarial_loss.cuda()
 reconstruction_loss.cuda()
 
-run = wandb.init(
-    project="tokai_teio",
-    config={
-        "learning_rate": args.lr,
-        "epochs": args.n_epochs,
-    },
-)
+if SEND_WANDB:
+    run = wandb.init(
+        project="tokai_teio",
+        config={
+            "learning_rate": LR,
+            "epochs": N_EPOCHS,
+            "batch_size": BATCH_SIZE,
+            "latent_dim": LATENT_DIM,
+            "img_size": IMG_SIZE,
+            "channels": CHANNELS,
+            "tags": ["aae", "v3"]
+        },
+    )
 
 #######################################################
 # Training part
@@ -103,13 +95,13 @@ run = wandb.init(
 def sample_image(n_row, epoch, img_dir):
     if not os.path.exists(img_dir):
         os.makedirs(img_dir)
-    z = Variable(Tensor(np.random.normal(0, 1, (n_row**2, args.latent_dim))))
+    z = Variable(Tensor(np.random.normal(0, 1, (n_row**2, LATENT_DIM))))
     generated_imgs = decoder(z)
     save_image(generated_imgs.data, os.path.join(
         img_dir, "%depoch.png" % epoch), nrow=n_row, normalize=True)
 
 
-for epoch in range(args.n_epochs):
+for epoch in range(N_EPOCHS):
     for i, x in enumerate(data_loader):
 
         valid = Variable(Tensor(x.shape[0], 1).fill_(1.0), requires_grad=False)
@@ -130,26 +122,29 @@ for epoch in range(args.n_epochs):
 
         # 2) discriminator loss
         optimizer_D.zero_grad()
+        # TODO: 正規分布から混合ガウス分布に変更
+        # => 分布の解釈性、表現性があがるかも
         real_z = Variable(Tensor(np.random.normal(
-            0, 1, (x.shape[0], args.latent_dim))))
+            0, 1, (x.shape[0], LATENT_DIM))))
         real_loss = adversarial_loss(discriminator(real_z), valid)
         fake_loss = adversarial_loss(discriminator(fake_z.detach()), fake)
         D_loss = 0.5*(real_loss + fake_loss)
         D_loss.backward()
         optimizer_D.step()
 
-        wandb.log({"G_loss": G_loss.item(), "D_loss": D_loss.item()})
-    # print loss
+        if SEND_WANDB:
+            wandb.log({"G_loss": G_loss.item(), "D_loss": D_loss.item()})
     print(
         "[Epoch %d/%d] [G loss: %f] [D loss: %f]"
-        % (epoch, args.n_epochs, G_loss.item(), D_loss.item())
+        % (epoch, N_EPOCHS, G_loss.item(), D_loss.item())
     )
 
     sample_image(n_row=5, epoch=epoch,
-                 img_dir=f"{args.img_dir}_{args.img_size}_ch{args.channels}_ldim_{args.latent_dim}_bs_{args.batch_size}")
+                 img_dir=f"outputs/{file_name}")
 
 finished_at = datetime.now().strftime("%Y-%m-%d_%H:%M")
-wandb.finish()
+if SEND_WANDB:
+    wandb.finish()
 torch.save(encoder.state_dict(),
            f'trained_models/encoder/{file_name}_{finished_at}.pth')
 
