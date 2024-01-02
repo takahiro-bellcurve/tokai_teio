@@ -22,12 +22,19 @@ SEND_WANDB = True
 #######################################################
 # Parameter setting
 #######################################################
-N_EPOCHS = 50
+parser = argparse.ArgumentParser()
+parser.add_argument("--n_epochs", type=int, default=100,
+                    help="number of epochs of training")
+parser.add_argument("--latent_dim", type=int, default=20,
+                    help="dimensionality of the latent code")
+args = parser.parse_args()
+
+N_EPOCHS = args.n_epochs
 BATCH_SIZE = 512
 LR = 0.0002
 B1 = 0.5
 B2 = 0.999
-LATENT_DIM = 20
+LATENT_DIM = args.latent_dim
 IMG_SIZE = 64
 CHANNELS = 3
 
@@ -150,3 +157,6 @@ torch.save(encoder.state_dict(),
 
 torch.save(decoder.state_dict(),
            f'trained_models/decoder/{file_name}_{finished_at}.pth')
+
+torch.save(discriminator.state_dict(),
+           f'trained_models/discriminator/{file_name}_{finished_at}.pth')

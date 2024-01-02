@@ -154,3 +154,6 @@ torch.save(encoder.state_dict(),
 
 torch.save(decoder.state_dict(),
            f'trained_models/decoder/{file_name}_{finished_at}.pth')
+
+torch.save(discriminator.state_dict(),
+           f'trained_models/discriminator/{file_name}_{finished_at}.pth')

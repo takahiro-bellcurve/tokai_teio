@@ -82,7 +82,7 @@ def load_faiss_and_model(model_name):
 
     model = Encoder(int(input_channels), int(img_size), int(latent_dim))
     logger.info(f"Loading Encoder: {model_name}")
-    model = torch.load(f"trained_models/encoder/{model_name}.pth")
+    model.load_state_dict(torch.load(f"trained_models/encoder/{model_name}.pth"))
     logger.info("Encoder Loaded")
     model.to(device)
     model.eval()
