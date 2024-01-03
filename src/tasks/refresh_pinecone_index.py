@@ -48,6 +48,18 @@ def encode_image(model, img_path, img_size, preprocess=False, device=None):
 
 def main():
     logger.info("Start refresh_pinecone_index.py")
+    pinecone.init(
+        api_key=os.getenv("PINECONE_API_KEY"),
+        environment='gcp-starter'
+    )
+    logger.info("delete index")
+    try:
+        index = pinecone.Index(PINECONE_INDEX_NAME)
+        pinecone.delete_index(PINECONE_INDEX_NAME)
+        logger.info("index deleted")
+    except:
+        pass
+
     # select model
     models = os.listdir("./trained_models/encoder/")
     for i, model in enumerate(models):
@@ -114,17 +126,6 @@ def main():
         )
 
     logger.info("Start creating faiss index")
-    pinecone.init(
-        api_key=os.getenv("PINECONE_API_KEY"),
-        environment='gcp-starter'
-    )
-    logger.info("delete index")
-    try:
-        index = pinecone.Index(PINECONE_INDEX_NAME)
-        pinecone.delete_index(PINECONE_INDEX_NAME)
-        logger.info("index deleted")
-    except:
-        pass
     pinecone.create_index(PINECONE_INDEX_NAME, dimension=int(
         latent_dim), metric="euclidean")
     pinecone.describe_index(PINECONE_INDEX_NAME)
