@@ -79,11 +79,12 @@ def main():
     df["file_name"] = df.apply(create_file_name, axis=1)
     upsert_df = delete_unexist_images(df, img_list)
     upsert_df.reset_index(drop=True, inplace=True)
-    upsert_data = upsert_df[['id', 'file_name']].to_dict(orient='records')
-    # upsert_data = upsert_data[:1000]
+    upsert_data = upsert_df[['id', 'file_name',
+                             'image_url']].to_dict(orient='records')
 
     model = Encoder(int(input_channels), int(img_size), int(latent_dim))
-    model.load_state_dict(torch.load(f"trained_models/encoder/{model_name}.pth"))
+    model.load_state_dict(torch.load(
+        f"trained_models/encoder/{model_name}.pth"))
     model.to(device)
     model.eval()
 
@@ -93,14 +94,24 @@ def main():
         if i % 1000 == 0:
             logger.info(f"{i} images encoded")
         image_path = ORIGINAL_IMG_DIR + row["file_name"]
-        vector = encode_image(model, image_path, int(img_size), preprocess=False, device=device)
+        vector = encode_image(model, image_path, int(
+            img_size), preprocess=False, device=device)
         vectors.append(vector)
     vectors = np.array(vectors).reshape(len(vectors), -1)
     logger.info("Finish encoding images")
 
     upsert_vectors = []
     for i, row in enumerate(upsert_data):
-        upsert_vectors.append({"id": f"t{str(row['id'])}", "values": vectors[i]})
+        upsert_vectors.append(
+            {
+                "id": f"t{str(row['id'])}",
+                "values": vectors[i],
+                "metadata": {
+                    "file_name": row["file_name"],
+                    "image_url": row["image_url"]
+                }
+            }
+        )
 
     logger.info("Start creating faiss index")
     pinecone.init(
@@ -114,7 +125,8 @@ def main():
         logger.info("index deleted")
     except:
         pass
-    pinecone.create_index(PINECONE_INDEX_NAME, dimension=int(latent_dim), metric="euclidean")
+    pinecone.create_index(PINECONE_INDEX_NAME, dimension=int(
+        latent_dim), metric="euclidean")
     pinecone.describe_index(PINECONE_INDEX_NAME)
     index = pinecone.Index(PINECONE_INDEX_NAME)
 
@@ -122,6 +134,7 @@ def main():
         index.upsert(upsert_vectors[i:i+100])
         logger.info(f"{i} images inserted")
     logger.info("Finish creating faiss index")
+
 
 if __name__ == "__main__":
     main()
