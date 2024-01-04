@@ -8,6 +8,14 @@ from src.lib.image_preprocessor import ImagePreprocessor
 
 class ModelOperator:
     @staticmethod
+    def get_model_name_list(model_type="encoder"):
+        model_name_list = []
+        for file_name in os.listdir(f"trained_models/{model_type}"):
+            model_name = re.sub(r"\.pth", "", file_name)
+            model_name_list.append(model_name)
+        return model_name_list
+
+    @staticmethod
     def get_model_info_from_model_name(model_name):
         model_info = {}
         model_info["model_name"] = model_name
@@ -45,7 +53,21 @@ class ModelOperator:
         return Encoder(input_channels, img_size, latent_dim)
 
     @staticmethod
-    def encode_image(encoder, img_path, img_size, preprocess=False, device=None):
+    def get_decoder_model(network_version: str, input_channels: int, img_size: int, latent_dim: int):
+        if network_version == "v0":
+            from src.networks.v0 import Decoder
+        elif network_version == "v1":
+            from src.networks.v1 import Decoder
+        elif network_version == "v2":
+            from src.networks.v2 import Decoder
+        elif network_version == "v3":
+            from src.networks.v3 import Decoder
+        else:
+            raise Exception("invalid network version")
+        return Decoder(input_channels, img_size, latent_dim)
+
+    @staticmethod
+    def encode_image(encoder, img_path, img_size, preprocess=False, device=None, to_numpy=True):
         image = ImagePreprocessor.open_image(img_path)
         if preprocess:
             image = ImagePreprocessor.remove_background(image)
@@ -57,4 +79,7 @@ class ModelOperator:
             image = image.to(device)
         with torch.no_grad():
             vector = encoder(image)
-        return vector.cpu().numpy()
+
+        if to_numpy:
+            return vector.cpu().numpy()
+        return vector
