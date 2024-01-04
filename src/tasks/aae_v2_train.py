@@ -36,7 +36,7 @@ parser.add_argument("--img_size", type=int, default=32,
                     help="size of each image dimension")
 parser.add_argument("--channels", type=int, default=1,
                     help="number of image channels")
-parser.add_argument("--img_dir", type=str, default='outputs/aae_v2',
+parser.add_argument("--img_dir", type=str, default='generated_images/aae_v2',
                     help="number of classes of image datasets")
 
 args = parser.parse_args()

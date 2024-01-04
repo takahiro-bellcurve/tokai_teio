@@ -145,7 +145,7 @@ for epoch in range(args.n_epochs):
     )
 
     sample_image(n_row=5, epoch=epoch,
-                 img_dir=f"outputs/{file_name}")
+                 img_dir=f"generated_images/{file_name}")
 
 finished_at = datetime.now().strftime("%Y-%m-%d_%H:%M")
 wandb.finish()
