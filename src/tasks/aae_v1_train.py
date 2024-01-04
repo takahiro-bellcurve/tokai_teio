@@ -53,6 +53,11 @@ DATASET_DIR = 'preprocessed_images_512'
 if not torch.cuda.is_available():
     raise Exception("No GPU found, please run without --cuda")
 
+if os.getenv("APP_ENV") == "production":
+    from google.cloud import storage
+    client = storage.Client()
+    bucket = client.get_bucket("tokaiteio")
+
 # define file name
 file_name = f"{MODEL_NAME}_{args.img_size}_ch{args.channels}_ldim_{args.latent_dim}_bs_{args.batch_size}_lr_{args.lr}_b1_{args.b1}_b2_{args.b2}"
 
@@ -107,6 +112,11 @@ def sample_image(n_row, epoch, img_dir):
     generated_imgs = decoder(z)
     save_image(generated_imgs.data, os.path.join(
         img_dir, "%depoch.png" % epoch), nrow=n_row, normalize=True)
+    if os.getenv("APP_ENV") == "production":
+        blob = bucket.blob(
+            f"generated_images/{file_name}/%depoch.png" % epoch)
+        blob.upload_from_filename(
+            f"generated_images/{file_name}/%depoch.png" % epoch)
 
 
 for epoch in range(args.n_epochs):
@@ -145,7 +155,7 @@ for epoch in range(args.n_epochs):
     )
 
     sample_image(n_row=5, epoch=epoch,
-                 img_dir=f"outputs/{file_name}")
+                 img_dir=f"generated_images/{file_name}")
 
 finished_at = datetime.now().strftime("%Y-%m-%d_%H:%M")
 wandb.finish()
@@ -157,3 +167,17 @@ torch.save(decoder.state_dict(),
 
 torch.save(discriminator.state_dict(),
            f'trained_models/discriminator/{file_name}_{finished_at}.pth')
+
+if os.getenv("APP_ENV") == "production":
+    blob = bucket.blob(
+        f'trained_models/encoder/{file_name}_{finished_at}.pth')
+    blob.upload_from_filename(
+        f'trained_models/encoder/{file_name}_{finished_at}.pth')
+    blob = bucket.blob(
+        f'trained_models/decoder/{file_name}_{finished_at}.pth')
+    blob.upload_from_filename(
+        f'trained_models/decoder/{file_name}_{finished_at}.pth')
+    blob = bucket.blob(
+        f'trained_models/discriminator/{file_name}_{finished_at}.pth')
+    blob.upload_from_filename(
+        f'trained_models/discriminator/{file_name}_{finished_at}.pth')

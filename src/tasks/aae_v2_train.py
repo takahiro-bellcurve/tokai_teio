@@ -36,7 +36,7 @@ parser.add_argument("--img_size", type=int, default=32,
                     help="size of each image dimension")
 parser.add_argument("--channels", type=int, default=1,
                     help="number of image channels")
-parser.add_argument("--img_dir", type=str, default='outputs/aae_v2',
+parser.add_argument("--img_dir", type=str, default='generated_images/aae_v2',
                     help="number of classes of image datasets")
 
 args = parser.parse_args()
@@ -52,6 +52,11 @@ DATASET_DIR = 'preprocessed_images_512'
 # config cuda
 if not torch.cuda.is_available():
     raise Exception("No GPU found, please run without --cuda")
+
+if os.getenv("APP_ENV") == "production":
+    from google.cloud import storage
+    client = storage.Client()
+    bucket = client.get_bucket("tokaiteio")
 
 # define file name
 file_name = f"{MODEL_NAME}_{args.img_size}_ch{args.channels}_ldim_{args.latent_dim}_bs_{args.batch_size}_lr_{args.lr}_b1_{args.b1}_b2_{args.b2}"
@@ -107,6 +112,11 @@ def sample_image(n_row, epoch, img_dir):
     generated_imgs = decoder(z)
     save_image(generated_imgs.data, os.path.join(
         img_dir, "%depoch.png" % epoch), nrow=n_row, normalize=True)
+    if os.getenv("APP_ENV") == "production":
+        blob = bucket.blob(
+            f"generated_images/{file_name}/%depoch.png" % epoch)
+        blob.upload_from_filename(
+            f"generated_images/{file_name}/%depoch.png" % epoch)
 
 
 for epoch in range(args.n_epochs):
@@ -154,3 +164,20 @@ torch.save(encoder.state_dict(),
 
 torch.save(decoder.state_dict(),
            f'trained_models/decoder/{file_name}_{finished_at}.pth')
+
+torch.save(discriminator.state_dict(),
+           f'trained_models/discriminator/{file_name}_{finished_at}.pth')
+
+if os.getenv("APP_ENV") == "production":
+    blob = bucket.blob(
+        f'trained_models/encoder/{file_name}_{finished_at}.pth')
+    blob.upload_from_filename(
+        f'trained_models/encoder/{file_name}_{finished_at}.pth')
+    blob = bucket.blob(
+        f'trained_models/decoder/{file_name}_{finished_at}.pth')
+    blob.upload_from_filename(
+        f'trained_models/decoder/{file_name}_{finished_at}.pth')
+    blob = bucket.blob(
+        f'trained_models/discriminator/{file_name}_{finished_at}.pth')
+    blob.upload_from_filename(
+        f'trained_models/discriminator/{file_name}_{finished_at}.pth')
