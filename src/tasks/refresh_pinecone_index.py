@@ -1,14 +1,17 @@
 import os
-import re
+import pickle
+import argparse
 import logging
 from logging import StreamHandler, Formatter
+from time import sleep
+
 
 import torch
 import pandas as pd
 import numpy as np
 import pinecone
 
-from src.lib.image_preprocessor import ImagePreprocessor
+from src.lib.model_operator import ModelOperator
 
 
 # config
@@ -17,10 +20,15 @@ PINECONE_INDEX_NAME = "tokai-teio"
 # Logger
 stream_handler = StreamHandler()
 stream_handler.setFormatter(Formatter(
-    '%(asctime)s [%(name)s] %(levelname)s: %(message)s', datefmt='%Y/%d/%m %I:%M:%S'))
+    '%(asctime)s [%(name)s] %(levelname)s: %(message)s', datefmt='%Y/%m/%d %I:%M:%S'))
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 logger.addHandler(stream_handler)
+
+parser = argparse.ArgumentParser()
+parser.add_argument("--encode", type=int, default=1,
+                    help="encode images")
+args = parser.parse_args()
 
 
 def create_file_name(row):
@@ -32,18 +40,18 @@ def delete_unexist_images(df, img_list):
     return df
 
 
-def encode_image(model, img_path, img_size, preprocess=False, device=None):
-    image = ImagePreprocessor.open_image(img_path)
-    if preprocess:
-        image = ImagePreprocessor.remove_background(image)
-        image = ImagePreprocessor.fill_white_background(image)
-    image = ImagePreprocessor.resize(image, img_size, img_size, to_tensor=True)
-    image = image.unsqueeze(0)
-    if device is not None:
-        image = image.to(device)
-    with torch.no_grad():
-        vector = model(image)
-    return vector.cpu().numpy()
+def upsert_vectors_to_pinecone(index, upsert_vectors, retry_count=0):
+    try:
+        index.upsert(upsert_vectors)
+        sleep(0.2)
+        return "success"
+    except:
+        sleep(5)
+        retry_count += 1
+        logger.info(f"retry {retry_count} times")
+        if retry_count > 5:
+            return "failed"
+        upsert_vectors_to_pinecone(index, upsert_vectors, retry_count)
 
 
 def main():
@@ -57,34 +65,27 @@ def main():
         index = pinecone.Index(PINECONE_INDEX_NAME)
         pinecone.delete_index(PINECONE_INDEX_NAME)
         logger.info("index deleted")
+        sleep(2)
     except:
         pass
+    logger.info("Start creating pinecone index")
+    pinecone.create_index(PINECONE_INDEX_NAME, dimension=int(
+        latent_dim), metric="euclidean")
+    pinecone.describe_index(PINECONE_INDEX_NAME)
 
     # select model
     models = os.listdir("./trained_models/encoder/")
     for i, model in enumerate(models):
         print(f"{i}: {model}")
     model_num = int(input("Select model number: "))
-    model_name = models[model_num].replace(".pth", "")
-    input_channels = re.search(r"ch(\d+)_", model_name).group(1)
-    img_size = re.search(r"_(\d+)_ch", model_name).group(1)
-    latent_dim = re.search(r"ldim_(\d+)_", model_name).group(1)
-    network_version = re.search(r"(v\d+)_", model_name).group(1)
-    print(f"selected model version: {network_version}")
-    print(f"selected model name: {model_name}")
-    print(f"selected input_channels: {input_channels}")
-    print(f"selected img_size: {img_size}")
-    print(f"selected latent_dim: {latent_dim}")
-    if network_version == "v0":
-        from src.networks.v0 import Encoder
-    elif network_version == "v1":
-        from src.networks.v1 import Encoder
-    elif network_version == "v2":
-        from src.networks.v2 import Encoder
-    elif network_version == "v3":
-        from src.networks.v3 import Encoder
 
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    model_info = ModelOperator.get_model_info_from_model_name(
+        models[model_num])
+    network_version = model_info["network_version"]
+    model_name = model_info["model_name"]
+    input_channels = model_info["input_channels"]
+    img_size = model_info["img_size"]
+    latent_dim = model_info["latent_dim"]
 
     img_list = os.listdir(ORIGINAL_IMG_DIR)
     df = pd.read_csv("./data/zozotown_goods_images_100000.csv")
@@ -92,25 +93,35 @@ def main():
     upsert_df = delete_unexist_images(df, img_list)
     upsert_df.reset_index(drop=True, inplace=True)
     upsert_data = upsert_df[['id', 'file_name',
-                             'image_url']].to_dict(orient='records')
+                            'image_url']].to_dict(orient='records')
 
-    model = Encoder(int(input_channels), int(img_size), int(latent_dim))
-    model.load_state_dict(torch.load(
-        f"trained_models/encoder/{model_name}.pth"))
-    model.to(device)
-    model.eval()
+    logger.info(f"encode process is {args.encode}")
+    if args.encode == 1:
+        device = ModelOperator.get_device()
+        model = ModelOperator.get_encoder_model(
+            network_version, input_channels, img_size, latent_dim)
+        model.load_state_dict(torch.load(
+            f"trained_models/encoder/{model_name}.pth"))
+        model.to(device)
+        model.eval()
 
-    logger.info("Start encoding images")
-    vectors = []
-    for i, row in enumerate(upsert_data):
-        if i % 1000 == 0:
-            logger.info(f"{i} images encoded")
-        image_path = ORIGINAL_IMG_DIR + row["file_name"]
-        vector = encode_image(model, image_path, int(
-            img_size), preprocess=False, device=device)
-        vectors.append(vector)
-    vectors = np.array(vectors).reshape(len(vectors), -1)
-    logger.info("Finish encoding images")
+        logger.info("Start encoding images")
+        vectors = []
+        for i, row in enumerate(upsert_data):
+            if i % 1000 == 0:
+                logger.info(f"{i} images encoded")
+            image_path = ORIGINAL_IMG_DIR + row["file_name"]
+            vector = ModelOperator.encode_image(model, image_path,
+                                                img_size, preprocess=False, device=device)
+            vectors.append(vector)
+        vectors = np.array(vectors).reshape(len(vectors), -1)
+        with open(f'./trained_models/vectors/{model_name}.pkl', 'wb') as f:
+            pickle.dump(vectors, f)
+        logger.info("Finish encoding images")
+
+    else:
+        with open(f'./trained_models/vectors/{model_name}.pkl', 'rb') as f:
+            vectors = pickle.load(f)
 
     upsert_vectors = []
     for i, row in enumerate(upsert_data):
@@ -125,16 +136,17 @@ def main():
             }
         )
 
-    logger.info("Start creating faiss index")
-    pinecone.create_index(PINECONE_INDEX_NAME, dimension=int(
-        latent_dim), metric="euclidean")
-    pinecone.describe_index(PINECONE_INDEX_NAME)
     index = pinecone.Index(PINECONE_INDEX_NAME)
 
     for i in range(0, len(upsert_vectors), 100):
-        index.upsert(upsert_vectors[i:i+100])
-        logger.info(f"{i} images inserted")
-    logger.info("Finish creating faiss index")
+        result = upsert_vectors_to_pinecone(index, upsert_vectors[i:i+100])
+        if result == "success":
+            logger.info(f"{i} images inserted")
+        else:
+            logger.warning("upsert failed")
+            break
+        sleep(1)
+    logger.info("Finish refresh_pinecone_index.py")
 
 
 if __name__ == "__main__":
