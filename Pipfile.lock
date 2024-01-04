@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "87913dcab4c3635efc1d04f9d23a677a4a33c6b66fbad7a6d081dece84d25544"
+            "sha256": "444ff162ad30a879640ad3b3e00ec010fd376763e6936a9a7b98f30943138983"
         },
         "pipfile-spec": 6,
         "requires": {
@@ -1012,7 +1012,7 @@
                 "sha256:f25e2811a9c932e43943a2615e65fc487a0b6b49218899e62e426e7f0a57eeda",
                 "sha256:f73497e8c38295aaa4741bdfa4fda1a5aedda5473074369eca10626835445511"
             ],
-            "markers": "python_version >= '3.9'",
+            "markers": "python_version >= '3.7'",
             "version": "==1.26.3"
         },
         "nvidia-cublas-cu12": {
@@ -1364,7 +1364,7 @@
                 "sha256:becc576b7e6b553d22cbdf418686ee4daa443d7217999125c045ad56322dda10",
                 "sha256:ca37bf6a6d0046272c152eea90d2e4ef34593aaa32e8873fc14c16440f22d4b7"
             ],
-            "markers": "python_version == '3.9' and sys_platform == 'linux'",
+            "markers": "python_version >= '3.8'",
             "version": "==4.25.1"
         },
         "psutil": {
@@ -1484,6 +1484,13 @@
             ],
             "markers": "python_version >= '3'",
             "version": "==1.1.12"
+        },
+        "pynndescent": {
+            "hashes": [
+                "sha256:6f44ced9d5a9da2c87d9b2fff30bb5308540c0657605e4d5cde7ed3275bbad50",
+                "sha256:a628f4fc8a67757c8fa15613449ac513fd056258a55b4084e47c06640ec90a8d"
+            ],
+            "version": "==0.5.11"
         },
         "pyparsing": {
             "hashes": [
@@ -2241,6 +2248,13 @@
             ],
             "markers": "python_version >= '3.8'",
             "version": "==5.2"
+        },
+        "umap-learn": {
+            "hashes": [
+                "sha256:c54d607364413eade968b73ba07c8b3ea14412817f53cd07b6f720ac957293c4"
+            ],
+            "index": "pypi",
+            "version": "==0.5.5"
         },
         "urllib3": {
             "hashes": [
