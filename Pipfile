@@ -12,7 +12,6 @@ matplotlib = "*"
 scikit-learn = "*"
 opencv-python = "*"
 rembg = {extras = ["gpu"], version = "*"}
-faiss-gpu = "*"
 pytest = "*"
 wandb = "*"
 python-dotenv = "*"
