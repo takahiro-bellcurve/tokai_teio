@@ -3,14 +3,12 @@ import re
 import logging
 from logging import StreamHandler, Formatter
 import subprocess
-import gc
 
 import streamlit as st
 import torch
-import pandas as pd
+import pinecone
 
 from src.lib.image_preprocessor import ImagePreprocessor
-from src.lib.faiss_operator import FaissOperator
 
 stream_handler = StreamHandler()
 stream_handler.setFormatter(Formatter(
@@ -56,17 +54,29 @@ st.text(f"img_size: {img_size}")
 st.text(f"latent_dim: {latent_dim}")
 st.markdown(f"GPUメモリ使用率 {get_gpu_memory_usage()}%")
 
+upload_image = st.file_uploader("Upload Image", type=["png", "jpg", "jpeg"])
+if upload_image is not None:
+    st.image(upload_image, width=200)
 
-def load_faiss_and_model(model_name):
-    if "has_setted_up" in st.session_state:
-        return False
-    st.session_state["has_setted_up"] = True
+
+def encode_image(model, image, img_size):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    st.session_state['device'] = device
+    image = ImagePreprocessor.open_image(upload_image)
+    image = ImagePreprocessor.remove_background(image)
+    image = ImagePreprocessor.fill_white_background(image)
+    image = ImagePreprocessor.resize(image, img_size, img_size, to_tensor=True)
+    image = image.unsqueeze(0)
+    image = image.to(device)
+    with torch.no_grad():
+        vector = model(image)
+    return vector.cpu().numpy()
 
-    db = FaissOperator.load_faiss_index(
-        f"./db/faiss/{model_name}.index", with_cuda=True)
-    st.session_state['faiss_index'] = db
+
+def search_similar_image(upload_image, model_name):
+    logger.info("Start searching similar image")
+    print("Start searching similar image")
+    st.spinner("Searching Similar Image...")
+
     input_channels = re.search(r"ch(\d+)_", model_name).group(1)
     img_size = re.search(r"_(\d+)_ch", model_name).group(1)
     latent_dim = re.search(r"ldim_(\d+)_", model_name).group(1)
@@ -80,80 +90,27 @@ def load_faiss_and_model(model_name):
     elif network_version == "3":
         from src.networks.v3.encoder import Encoder
 
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model = Encoder(int(input_channels), int(img_size), int(latent_dim))
     logger.info(f"Loading Encoder: {model_name}")
-    model.load_state_dict(torch.load(f"trained_models/encoder/{model_name}.pth"))
+    model.load_state_dict(torch.load(
+        f"trained_models/encoder/{model_name}.pth"))
     logger.info("Encoder Loaded")
     model.to(device)
     model.eval()
-    st.session_state['model'] = model
-    return True
 
-
-def check_faiss_and_model():
-    return "has_setted_up" in st.session_state
-
-
-bt1, bt2, bt3 = st.columns(3)
-
-with bt1:
-    if st.button("Load Faiss Index and Model", type="primary"):
-        status = load_faiss_and_model(model_name)
-        if status:
-            st.success("Loaded Faiss Index and Model")
-        else:
-            st.warning("Already loaded Faiss Index and Model")
-
-with bt2:
-    if st.button("Check Faiss Index and Model"):
-        status = check_faiss_and_model()
-        if status:
-            st.success("Already loaded Faiss Index and Model")
-        else:
-            st.warning("Not loaded Faiss Index and Model")
-
-
-with bt3:
-    if st.button("Clear Session State"):
-        st.session_state.clear()
-        torch.cuda.empty_cache()
-        for key in list(st.session_state.keys()):
-            del st.session_state[key]
-        st.success("Cleared Session State")
-
-upload_image = st.file_uploader("Upload Image", type=["png", "jpg", "jpeg"])
-if upload_image is not None:
-    st.image(upload_image, width=200)
-
-
-def encode_image(model, image, img_size):
-    device = st.session_state['device']
-    image = ImagePreprocessor.open_image(upload_image)
-    image = ImagePreprocessor.remove_background(image)
-    image = ImagePreprocessor.fill_white_background(image)
-    image = ImagePreprocessor.resize(image, img_size, img_size, to_tensor=True)
-    image = image.unsqueeze(0)
-    image = image.to(device)
-    with torch.no_grad():
-        vector = model(image)
-    return vector.cpu().numpy()
-
-
-def search_similar_image(upload_image, model_name):
-    if "model" not in st.session_state:
-        st.error("Load Faiss Index and Modelを最初に実行してください。")
-        return
-    logger.info("Start searching similar image")
-    print("Start searching similar image")
-    st.spinner("Searching Similar Image...")
-    model = st.session_state['model']
-    db = st.session_state['faiss_index']
+    pinecone.init(
+        api_key=os.environ["PINECONE_API_KEY"], environment="gcp-starter"
+    )
+    index = pinecone.Index("tokai-teio")
     vector = encode_image(model, upload_image, int(img_size))
-    indexes = FaissOperator.search_similar_images(db, vector, k=6)
+    indexes = index.query(
+        vector=vector[0].tolist(), top_k=6, include_metadata=True)
 
-    df = pd.read_csv(f"./db/faiss/id_mapping/{model_name}.csv")
-    searched_df = df.iloc[indexes[0]]
-    st.session_state["similar_images"] = searched_df["image_url"].values.tolist()
+    similar_image_urls = []
+    for row in indexes["matches"]:
+        similar_image_urls.append(row.metadata["image_url"])
+    st.session_state["similar_images"] = similar_image_urls
 
 
 if upload_image:
