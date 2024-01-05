@@ -131,9 +131,9 @@ for epoch in range(N_EPOCHS):
         # print("fake_z shape: ", fake_z.shape)
         decoded_x = decoder(fake_z)
         validity_fake_z = discriminator(fake_z)
-        G_loss = 0.001 * \
-            adversarial_loss(validity_fake_z, valid) + 0.999 * \
-            reconstruction_loss(decoded_x, x)
+        ad_loss = 0.001 * adversarial_loss(validity_fake_z, valid)
+        re_loss = 0.999 * reconstruction_loss(decoded_x, x)
+        G_loss = ad_loss + re_loss
         G_loss.backward()
         optimizer_G.step()
 
@@ -148,7 +148,8 @@ for epoch in range(N_EPOCHS):
         optimizer_D.step()
 
         if SEND_WANDB:
-            wandb.log({"G_loss": G_loss.item(), "D_loss": D_loss.item()})
+            wandb.log({"G_loss": G_loss.item(), "D_loss": D_loss.item(),
+                       "adversarial_loss": ad_loss.item(), "reconstruction_loss": re_loss.item()})
     print(
         "[Epoch %d/%d] [G loss: %f] [D loss: %f]"
         % (epoch, N_EPOCHS, G_loss.item(), D_loss.item())
