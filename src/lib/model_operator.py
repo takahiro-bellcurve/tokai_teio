@@ -48,6 +48,8 @@ class ModelOperator:
             from src.networks.v2 import Encoder
         elif network_version == "v3":
             from src.networks.v3 import Encoder
+        elif network_version == "v4":
+            from src.networks.v4 import Encoder
         else:
             raise Exception("invalid network version")
         return Encoder(input_channels, img_size, latent_dim)
@@ -62,6 +64,8 @@ class ModelOperator:
             from src.networks.v2 import Decoder
         elif network_version == "v3":
             from src.networks.v3 import Decoder
+        elif network_version == "v4":
+            from src.networks.v4 import Decoder
         else:
             raise Exception("invalid network version")
         return Decoder(input_channels, img_size, latent_dim)
