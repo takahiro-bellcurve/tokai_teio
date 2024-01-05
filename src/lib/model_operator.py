@@ -76,3 +76,13 @@ class ModelOperator:
         if to_numpy:
             return vector.cpu().numpy()
         return vector
+
+    @staticmethod
+    def save_model(model, file_name, finished_at, model_type="encoder", bucket=None):
+        torch.save(model.state_dict(),
+                   f'trained_models/{model_type}/{file_name}_{finished_at}.pth')
+        if os.getenv("APP_ENV") == "production":
+            blob = bucket.blob(
+                f'trained_models/{model_type}/{file_name}_{finished_at}.pth')
+            blob.upload_from_filename(
+                f'trained_models/{model_type}/{file_name}_{finished_at}.pth')
