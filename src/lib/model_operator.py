@@ -1,5 +1,6 @@
 import os
 import re
+import importlib
 
 import torch
 
@@ -40,34 +41,22 @@ class ModelOperator:
 
     @staticmethod
     def get_encoder_model(network_version: str, input_channels: int, img_size: int, latent_dim: int):
-        if network_version == "v0":
-            from src.networks.v0 import Encoder
-        elif network_version == "v1":
-            from src.networks.v1 import Encoder
-        elif network_version == "v2":
-            from src.networks.v2 import Encoder
-        elif network_version == "v3":
-            from src.networks.v3 import Encoder
-        elif network_version == "v4":
-            from src.networks.v4 import Encoder
-        else:
-            raise Exception("invalid network version")
+        try:
+            network_module = importlib.import_module(
+                f"src.networks.{network_version}")
+            Encoder = getattr(network_module, 'Encoder')
+        except ImportError:
+            raise Exception(f"Invalid network version: {network_version}")
         return Encoder(input_channels, img_size, latent_dim)
 
     @staticmethod
     def get_decoder_model(network_version: str, input_channels: int, img_size: int, latent_dim: int):
-        if network_version == "v0":
-            from src.networks.v0 import Decoder
-        elif network_version == "v1":
-            from src.networks.v1 import Decoder
-        elif network_version == "v2":
-            from src.networks.v2 import Decoder
-        elif network_version == "v3":
-            from src.networks.v3 import Decoder
-        elif network_version == "v4":
-            from src.networks.v4 import Decoder
-        else:
-            raise Exception("invalid network version")
+        try:
+            network_module = importlib.import_module(
+                f"src.networks.{network_version}")
+            Decoder = getattr(network_module, 'Decoder')
+        except ImportError:
+            raise Exception(f"Invalid network version: {network_version}")
         return Decoder(input_channels, img_size, latent_dim)
 
     @staticmethod
