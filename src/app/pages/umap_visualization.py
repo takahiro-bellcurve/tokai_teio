@@ -4,17 +4,14 @@ import subprocess
 import pickle
 import umap
 import logging
-from logging import StreamHandler, Formatter
 import matplotlib.pyplot as plt
 
 import streamlit as st
 
-stream_handler = StreamHandler()
-stream_handler.setFormatter(Formatter(
-    '%(asctime)s [%(name)s] %(levelname)s: %(message)s', datefmt='%Y/%d/%m %I:%M:%S'))
+from src.lib.setup_logging import setup_logging
+
+setup_logging()
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
-logger.addHandler(stream_handler)
 
 st.set_page_config(page_title="Umap Visualization")
 

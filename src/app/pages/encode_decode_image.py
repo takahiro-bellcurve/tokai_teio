@@ -1,7 +1,6 @@
 import os
 import re
 import logging
-from logging import StreamHandler, Formatter
 import subprocess
 
 import torch
@@ -9,13 +8,10 @@ import streamlit as st
 
 from src.lib.image_preprocessor import ImagePreprocessor
 from src.lib.model_operator import ModelOperator
+from src.lib.setup_logging import setup_logging
 
-stream_handler = StreamHandler()
-stream_handler.setFormatter(Formatter(
-    '%(asctime)s [%(name)s] %(levelname)s: %(message)s', datefmt='%Y/%d/%m %I:%M:%S'))
+setup_logging()
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
-logger.addHandler(stream_handler)
 
 st.set_page_config(page_title="Encode Decode Image")
 
