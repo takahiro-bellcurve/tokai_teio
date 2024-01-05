@@ -9,6 +9,7 @@ import torch
 import pinecone
 
 from src.lib.image_preprocessor import ImagePreprocessor
+from src.lib.model_operator import ModelOperator
 
 stream_handler = StreamHandler()
 stream_handler.setFormatter(Formatter(
@@ -45,13 +46,11 @@ for file_name in os.listdir("trained_models/encoder"):
     model_name = re.sub(r"\.pth", "", file_name)
     model_file_names.append(model_name)
 model_name = st.selectbox("Select Model", model_file_names)
-input_channels = re.search(r"ch(\d+)_", model_name).group(1)
-img_size = re.search(r"_(\d+)_ch", model_name).group(1)
-latent_dim = re.search(r"ldim_(\d+)_", model_name).group(1)
+model_info = ModelOperator.get_model_info_from_model_name(model_name)
 
-st.text(f"input_channels: {input_channels}")
-st.text(f"img_size: {img_size}")
-st.text(f"latent_dim: {latent_dim}")
+st.text(f"input_channels: {model_info['input_channels']}")
+st.text(f"img_size: {model_info['img_size']}")
+st.text(f"latent_dim: {model_info['latent_dim']}")
 st.markdown(f"GPUメモリ使用率 {get_gpu_memory_usage()}%")
 
 upload_image = st.file_uploader("Upload Image", type=["png", "jpg", "jpeg"])
@@ -77,21 +76,11 @@ def search_similar_image(upload_image, model_name):
     print("Start searching similar image")
     st.spinner("Searching Similar Image...")
 
-    input_channels = re.search(r"ch(\d+)_", model_name).group(1)
-    img_size = re.search(r"_(\d+)_ch", model_name).group(1)
-    latent_dim = re.search(r"ldim_(\d+)_", model_name).group(1)
-    network_version = re.search(r"v(\d+)_", model_name).group(1)
-    if network_version == "0":
-        from src.networks.v0.encoder import Encoder
-    elif network_version == "1":
-        from src.networks.v1.encoder import Encoder
-    elif network_version == "2":
-        from src.networks.v2.encoder import Encoder
-    elif network_version == "3":
-        from src.networks.v3.encoder import Encoder
-
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    model = Encoder(int(input_channels), int(img_size), int(latent_dim))
+    model_info = ModelOperator.get_model_info_from_model_name(model_name)
+    model = ModelOperator.get_encoder_model(
+        model_info["network_version"], model_info["input_channels"], model_info["img_size"], model_info["latent_dim"])
+
     logger.info(f"Loading Encoder: {model_name}")
     model.load_state_dict(torch.load(
         f"trained_models/encoder/{model_name}.pth"))
@@ -103,7 +92,7 @@ def search_similar_image(upload_image, model_name):
         api_key=os.environ["PINECONE_API_KEY"], environment="gcp-starter"
     )
     index = pinecone.Index("tokai-teio")
-    vector = encode_image(model, upload_image, int(img_size))
+    vector = encode_image(model, upload_image, model_info["img_size"])
     indexes = index.query(
         vector=vector[0].tolist(), top_k=6, include_metadata=True)
 
