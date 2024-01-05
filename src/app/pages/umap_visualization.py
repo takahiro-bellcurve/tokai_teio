@@ -9,6 +9,7 @@ import matplotlib.pyplot as plt
 import streamlit as st
 
 from src.lib.setup_logging import setup_logging
+from src.lib.system_operator import get_gpu_memory_usage
 
 setup_logging()
 logger = logging.getLogger(__name__)
@@ -18,23 +19,6 @@ st.set_page_config(page_title="Umap Visualization")
 st.markdown("# Umap Visualization")
 
 status_text = st.sidebar.empty()
-
-
-def get_gpu_memory_usage():
-    # nvidia-smi コマンドを実行
-    result = subprocess.check_output(
-        ["nvidia-smi", "--query-gpu=memory.used,memory.total", "--format=csv,nounits,noheader"])
-    # 出力をデコード
-    result = result.decode('utf-8')
-
-    # GPUメモリの使用量と総メモリを抽出
-    gpu_memory = [list(map(int, re.findall(r'\d+', line)))
-                  for line in result.strip().split('\n')]
-
-    # 使用率を計算
-    usage = [(used / total) * 100 for used, total in gpu_memory]
-    return str(usage[0])[:5]
-
 
 model_file_names = []
 for file_name in os.listdir("trained_models/vectors"):
