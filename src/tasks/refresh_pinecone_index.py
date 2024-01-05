@@ -1,4 +1,5 @@
 import os
+import re
 import pickle
 import argparse
 import logging
@@ -61,6 +62,21 @@ def main():
         environment='gcp-starter'
     )
     logger.info("delete index")
+
+    # select model
+    models = os.listdir("./trained_models/encoder/")
+    for i, model in enumerate(models):
+        print(f"{i}: {model}")
+    model_num = int(input("Select model number: "))
+
+    model_info = ModelOperator.get_model_info_from_model_name(
+        models[model_num])
+    network_version = model_info["network_version"]
+    model_name = re.sub(r"\.pth", "", models[model_num])
+    input_channels = model_info["input_channels"]
+    img_size = model_info["img_size"]
+    latent_dim = model_info["latent_dim"]
+
     try:
         index = pinecone.Index(PINECONE_INDEX_NAME)
         pinecone.delete_index(PINECONE_INDEX_NAME)
@@ -72,20 +88,6 @@ def main():
     pinecone.create_index(PINECONE_INDEX_NAME, dimension=int(
         latent_dim), metric="euclidean")
     pinecone.describe_index(PINECONE_INDEX_NAME)
-
-    # select model
-    models = os.listdir("./trained_models/encoder/")
-    for i, model in enumerate(models):
-        print(f"{i}: {model}")
-    model_num = int(input("Select model number: "))
-
-    model_info = ModelOperator.get_model_info_from_model_name(
-        models[model_num])
-    network_version = model_info["network_version"]
-    model_name = model_info["model_name"]
-    input_channels = model_info["input_channels"]
-    img_size = model_info["img_size"]
-    latent_dim = model_info["latent_dim"]
 
     img_list = os.listdir(ORIGINAL_IMG_DIR)
     df = pd.read_csv("./data/zozotown_goods_images_100000.csv")
