@@ -13,6 +13,7 @@ from torchvision.utils import save_image
 import wandb
 
 from src.networks.v2 import Encoder, Decoder, Discriminator
+from src.lib.model_operator import ModelOperator
 from src.lib.create_data_loader import create_data_loader
 
 #######################################################
@@ -159,25 +160,11 @@ for epoch in range(args.n_epochs):
 
 finished_at = datetime.now().strftime("%Y-%m-%d_%H:%M")
 wandb.finish()
-torch.save(encoder.state_dict(),
-           f'trained_models/encoder/{file_name}_{finished_at}.pth')
 
-torch.save(decoder.state_dict(),
-           f'trained_models/decoder/{file_name}_{finished_at}.pth')
-
-torch.save(discriminator.state_dict(),
-           f'trained_models/discriminator/{file_name}_{finished_at}.pth')
-
-if os.getenv("APP_ENV") == "production":
-    blob = bucket.blob(
-        f'trained_models/encoder/{file_name}_{finished_at}.pth')
-    blob.upload_from_filename(
-        f'trained_models/encoder/{file_name}_{finished_at}.pth')
-    blob = bucket.blob(
-        f'trained_models/decoder/{file_name}_{finished_at}.pth')
-    blob.upload_from_filename(
-        f'trained_models/decoder/{file_name}_{finished_at}.pth')
-    blob = bucket.blob(
-        f'trained_models/discriminator/{file_name}_{finished_at}.pth')
-    blob.upload_from_filename(
-        f'trained_models/discriminator/{file_name}_{finished_at}.pth')
+# save model
+ModelOperator.save_model(encoder, file_name, finished_at,
+                         model_type="encoder", bucket=bucket)
+ModelOperator.save_model(decoder, file_name, finished_at,
+                         model_type="decoder", bucket=bucket)
+ModelOperator.save_model(discriminator, file_name, finished_at,
+                         model_type="discriminator", bucket=bucket)

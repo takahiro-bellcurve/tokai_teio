@@ -1,7 +1,6 @@
 import os
 import re
 import logging
-from logging import StreamHandler, Formatter
 import subprocess
 
 import streamlit as st
@@ -9,13 +8,12 @@ import torch
 import pinecone
 
 from src.lib.image_preprocessor import ImagePreprocessor
+from src.lib.model_operator import ModelOperator
+from src.lib.setup_logging import setup_logging
+from src.lib.system_operator import get_gpu_memory_usage
 
-stream_handler = StreamHandler()
-stream_handler.setFormatter(Formatter(
-    '%(asctime)s [%(name)s] %(levelname)s: %(message)s', datefmt='%Y/%d/%m %I:%M:%S'))
+setup_logging()
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
-logger.addHandler(stream_handler)
 
 st.set_page_config(page_title="Search Similar Image")
 
@@ -23,35 +21,16 @@ st.markdown("# Search Similar Image")
 
 status_text = st.sidebar.empty()
 
-
-def get_gpu_memory_usage():
-    # nvidia-smi コマンドを実行
-    result = subprocess.check_output(
-        ["nvidia-smi", "--query-gpu=memory.used,memory.total", "--format=csv,nounits,noheader"])
-    # 出力をデコード
-    result = result.decode('utf-8')
-
-    # GPUメモリの使用量と総メモリを抽出
-    gpu_memory = [list(map(int, re.findall(r'\d+', line)))
-                  for line in result.strip().split('\n')]
-
-    # 使用率を計算
-    usage = [(used / total) * 100 for used, total in gpu_memory]
-    return str(usage[0])[:5]
-
-
 model_file_names = []
 for file_name in os.listdir("trained_models/encoder"):
     model_name = re.sub(r"\.pth", "", file_name)
     model_file_names.append(model_name)
 model_name = st.selectbox("Select Model", model_file_names)
-input_channels = re.search(r"ch(\d+)_", model_name).group(1)
-img_size = re.search(r"_(\d+)_ch", model_name).group(1)
-latent_dim = re.search(r"ldim_(\d+)_", model_name).group(1)
+model_info = ModelOperator.get_model_info_from_model_name(model_name)
 
-st.text(f"input_channels: {input_channels}")
-st.text(f"img_size: {img_size}")
-st.text(f"latent_dim: {latent_dim}")
+st.text(f"input_channels: {model_info['input_channels']}")
+st.text(f"img_size: {model_info['img_size']}")
+st.text(f"latent_dim: {model_info['latent_dim']}")
 st.markdown(f"GPUメモリ使用率 {get_gpu_memory_usage()}%")
 
 upload_image = st.file_uploader("Upload Image", type=["png", "jpg", "jpeg"])
@@ -77,21 +56,11 @@ def search_similar_image(upload_image, model_name):
     print("Start searching similar image")
     st.spinner("Searching Similar Image...")
 
-    input_channels = re.search(r"ch(\d+)_", model_name).group(1)
-    img_size = re.search(r"_(\d+)_ch", model_name).group(1)
-    latent_dim = re.search(r"ldim_(\d+)_", model_name).group(1)
-    network_version = re.search(r"v(\d+)_", model_name).group(1)
-    if network_version == "0":
-        from src.networks.v0.encoder import Encoder
-    elif network_version == "1":
-        from src.networks.v1.encoder import Encoder
-    elif network_version == "2":
-        from src.networks.v2.encoder import Encoder
-    elif network_version == "3":
-        from src.networks.v3.encoder import Encoder
-
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    model = Encoder(int(input_channels), int(img_size), int(latent_dim))
+    model_info = ModelOperator.get_model_info_from_model_name(model_name)
+    model = ModelOperator.get_encoder_model(
+        model_info["network_version"], model_info["input_channels"], model_info["img_size"], model_info["latent_dim"])
+
     logger.info(f"Loading Encoder: {model_name}")
     model.load_state_dict(torch.load(
         f"trained_models/encoder/{model_name}.pth"))
@@ -103,7 +72,7 @@ def search_similar_image(upload_image, model_name):
         api_key=os.environ["PINECONE_API_KEY"], environment="gcp-starter"
     )
     index = pinecone.Index("tokai-teio")
-    vector = encode_image(model, upload_image, int(img_size))
+    vector = encode_image(model, upload_image, model_info["img_size"])
     indexes = index.query(
         vector=vector[0].tolist(), top_k=6, include_metadata=True)
 

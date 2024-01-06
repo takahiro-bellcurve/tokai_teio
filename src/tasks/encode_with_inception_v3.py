@@ -3,7 +3,6 @@ import pickle
 import re
 import argparse
 import logging
-from logging import StreamHandler, Formatter
 from time import sleep
 
 import torch
@@ -16,18 +15,14 @@ import pinecone
 
 
 from src.lib.model_operator import ModelOperator
+from src.lib.setup_logging import setup_logging
+
+setup_logging()
+logger = logging.getLogger(__name__)
 
 # config
 ORIGINAL_IMG_DIR = "./data/preprocessed_images_512/"
 PINECONE_INDEX_NAME = "tokai-teio"
-
-# Logger
-stream_handler = StreamHandler()
-stream_handler.setFormatter(Formatter(
-    '%(asctime)s [%(name)s] %(levelname)s: %(message)s', datefmt='%Y/%m/%d %I:%M:%S'))
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
-logger.addHandler(stream_handler)
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--encode", type=int, default=1,

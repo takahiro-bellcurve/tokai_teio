@@ -1,7 +1,6 @@
 import os
 import re
 import logging
-from logging import StreamHandler, Formatter
 import subprocess
 
 import streamlit as st
@@ -13,36 +12,17 @@ from PIL import Image
 
 from src.lib.image_preprocessor import ImagePreprocessor
 from src.lib.model_operator import ModelOperator
+from src.lib.setup_logging import setup_logging
+from src.lib.system_operator import get_gpu_memory_usage
 
-stream_handler = StreamHandler()
-stream_handler.setFormatter(Formatter(
-    '%(asctime)s [%(name)s] %(levelname)s: %(message)s', datefmt='%Y/%d/%m %I:%M:%S'))
+setup_logging()
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
-logger.addHandler(stream_handler)
 
 st.set_page_config(page_title="Search Similar Image with Inception v3")
 
 st.markdown("# Search Similar Image with Inception v3")
 
 status_text = st.sidebar.empty()
-
-
-def get_gpu_memory_usage():
-    # nvidia-smi コマンドを実行
-    result = subprocess.check_output(
-        ["nvidia-smi", "--query-gpu=memory.used,memory.total", "--format=csv,nounits,noheader"])
-    # 出力をデコード
-    result = result.decode('utf-8')
-
-    # GPUメモリの使用量と総メモリを抽出
-    gpu_memory = [list(map(int, re.findall(r'\d+', line)))
-                  for line in result.strip().split('\n')]
-
-    # 使用率を計算
-    usage = [(used / total) * 100 for used, total in gpu_memory]
-    return str(usage[0])[:5]
-
 
 st.markdown(f"GPUメモリ使用率 {get_gpu_memory_usage()}%")
 
