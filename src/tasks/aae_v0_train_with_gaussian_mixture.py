@@ -52,6 +52,8 @@ if os.getenv("APP_ENV") == "production":
     from google.cloud import storage
     client = storage.Client()
     bucket = client.get_bucket("tokaiteio")
+else:
+    bucket = None
 
 # define file name
 file_name = f"{MODEL_NAME}_{IMG_SIZE}_ch{CHANNELS}_ldim_{LATENT_DIM}_bs_{BATCH_SIZE}_lr_{LR}_b1_{B1}_b2_{B2}"
