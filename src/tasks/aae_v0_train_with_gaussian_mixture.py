@@ -56,7 +56,7 @@ else:
     bucket = None
 
 # define file name
-file_name = f"{MODEL_NAME}_{IMG_SIZE}_ch{CHANNELS}_ldim_{LATENT_DIM}_bs_{BATCH_SIZE}_lr_{LR}_b1_{B1}_b2_{B2}"
+file_name = f"{MODEL_NAME}_{IMG_SIZE}_ch{CHANNELS}_ldim_{LATENT_DIM}_bs_{BATCH_SIZE}_lr_{LR}_b1_{B1}_b2_{B2}_with_gaussian_mixture"
 
 # define Tensor
 Tensor = torch.cuda.FloatTensor
@@ -117,9 +117,9 @@ def sample_image(n_row, epoch, img_dir):
         img_dir, "%depoch.png" % epoch), nrow=n_row, normalize=True)
     if os.getenv("APP_ENV") == "production":
         blob = bucket.blob(
-            f"generated_images/{file_name}_with_gaussian_mixture/%depoch.png" % epoch)
+            f"generated_images/{file_name}/%depoch.png" % epoch)
         blob.upload_from_filename(
-            f"generated_images/{file_name}_with_gaussian_mixture/%depoch.png" % epoch)
+            f"generated_images/{file_name}/%depoch.png" % epoch)
 
 
 def gaussian_mixture(batchsize, ndim, num_labels, device='cpu'):
@@ -189,7 +189,7 @@ for epoch in range(N_EPOCHS):
     )
 
     sample_image(n_row=5, epoch=epoch,
-                 img_dir=f"generated_images/{file_name}_with_gaussian_mixture")
+                 img_dir=f"generated_images/{file_name}")
 
 finished_at = datetime.now().strftime("%Y-%m-%d_%H:%M")
 if SEND_WANDB:
