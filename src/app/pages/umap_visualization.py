@@ -1,6 +1,6 @@
 import os
 import re
-import subprocess
+import io
 import pickle
 import umap
 import logging
@@ -43,15 +43,38 @@ def umap_visualization():
     with open(pickle_file, 'rb') as f:
         latent_vectors = pickle.load(f)
 
-    reducer = umap.UMAP(random_state=42)
-    embedding = reducer.fit_transform(latent_vectors)
+    reducer = umap.UMAP(
+        random_state=42, n_neighbors=n_neighbors, min_dist=min_dist, spread=spread)
+    embedding = reducer.fit_transform(latent_vectors[:data_points])
 
     fig = plt.figure()
     plt.scatter(embedding[:, 0], embedding[:, 1], cmap='Spectral', s=5)
     plt.gca().set_aspect('equal', 'datalim')
     plt.title('UMAP projection of the Latent Space')
+    buf = io.BytesIO()
+    fig.savefig(
+        f"./generated_images/umap/{model_name}_nn{n_neighbors}_md{min_dist}_s{spread}.png")
+    fig.savefig(buf, format='png')
+    buf.seek(0)
+    st.session_state["fig"] = buf
     return fig
 
 
+st.text("data_points: \n データの数")
+data_points = st.slider("data_points", 1000, 100000, 10000)
+st.text("n_neighbors: \n 値が小さいほど局所的なデータが保持されます")
+n_neighbors = st.slider("n_neighbors", 2, 100, 15)
+st.text("min_dist: \n 埋め込み空間における点間の最小距離を定義")
+min_dist = st.slider("min_dist", 0.0, 1.0, 0.1)
+st.text("spread: \n 埋め込み点の効果的なスケール、つまり埋め込まれた点がどの程度広がるかを決定するパラメータ")
+spread = st.slider("spread", 0.0, 1.0, 1.0)
+
 if st.button("Show Graph"):
-    st.pyplot(umap_visualization())
+    fig = umap_visualization()
+    st.pyplot(fig)
+
+
+# download graph
+if st.session_state.get("fig"):
+    if st.download_button(label="Download Graph", data=st.session_state["fig"], file_name=f"{model_name}_nn{n_neighbors}_md{min_dist}_s{spread}.png", mime="image/png"):
+        st.success("Saved Graph")
