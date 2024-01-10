@@ -13,7 +13,7 @@ from src.lib.image_preprocessor import ImagePreprocessor
 
 
 files = os.listdir('data/original_images')
-df = pd.read_csv('data/zozotown_goods_images_100000.csv')
+df = pd.read_csv('data/zozotown_goods_images_500000.csv')
 
 df["image_name"] = df["image_url"].apply(lambda x: x.split("/")[-1])
 
