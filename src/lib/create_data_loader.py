@@ -4,7 +4,7 @@ import torchvision.transforms as transforms
 from src.lib.image_dataset.image_dataset import ImageDataset
 
 
-def create_data_loader(img_size, batch_size, channels, dataset_dir='data/preprocessed_images_512'):
+def create_data_loader(img_size, batch_size, channels, dataset_dir='data/train_data'):
     if channels == 3:
         transform = transforms.Compose([
             transforms.Resize((img_size, img_size)),

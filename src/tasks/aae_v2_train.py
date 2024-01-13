@@ -44,7 +44,6 @@ args = parser.parse_args()
 print(args)
 
 MODEL_NAME = "aae_v2"
-DATASET_DIR = 'preprocessed_images_512'
 
 #######################################################
 # Preparing part
