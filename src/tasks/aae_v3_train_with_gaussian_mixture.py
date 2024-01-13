@@ -37,6 +37,7 @@ B2 = 0.999
 LATENT_DIM = args.latent_dim
 IMG_SIZE = 64
 CHANNELS = 3
+NUM_LABELS = 10
 
 #######################################################
 # Preparing part
@@ -120,6 +121,34 @@ def sample_image(n_row, epoch, img_dir):
             f"generated_images/{file_name}/%depoch.png" % epoch)
 
 
+def gaussian_mixture(batchsize, ndim, num_labels, device='cpu'):
+    if ndim % 2 != 0:
+        raise Exception("ndim must be a multiple of 2.")
+
+    def sample(x, y, label, num_labels):
+        shift = 1.4
+        r = 2.0 * np.pi / float(num_labels) * float(label)
+        r_tensor = torch.tensor(r, device=device)
+        new_x = x * torch.cos(r_tensor) - y * torch.sin(r_tensor)
+        new_y = x * torch.sin(r_tensor) + y * torch.cos(r_tensor)
+        new_x += shift * torch.cos(r_tensor)
+        new_y += shift * torch.sin(r_tensor)
+        return torch.stack([new_x, new_y])
+
+    x_var = 0.5
+    y_var = 0.05
+    x = torch.normal(0, x_var, (batchsize, ndim // 2)).to(device)
+    y = torch.normal(0, y_var, (batchsize, ndim // 2)).to(device)
+    z = torch.empty((batchsize, ndim), device=device)
+    for batch in range(batchsize):
+        for zi in range(ndim // 2):
+            label = torch.randint(0, num_labels, (1,)).item()
+            z[batch, zi*2:zi*2 +
+                2] = sample(x[batch, zi], y[batch, zi], label, num_labels)
+    return z
+
+
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 for epoch in range(N_EPOCHS):
     for i, x in enumerate(data_loader):
 
@@ -141,10 +170,8 @@ for epoch in range(N_EPOCHS):
 
         # 2) discriminator loss
         optimizer_D.zero_grad()
-        # TODO: 正規分布から混合ガウス分布に変更
-        # => 分布の解釈性、表現性があがるかも
-        real_z = Variable(Tensor(np.random.normal(
-            0, 1, (x.shape[0], LATENT_DIM))))
+        real_z = Variable(Tensor(gaussian_mixture(
+            x.shape[0], LATENT_DIM, NUM_LABELS, device=device)).to(x.device))
         real_loss = adversarial_loss(discriminator(real_z), valid)
         fake_loss = adversarial_loss(discriminator(fake_z.detach()), fake)
         D_loss = 0.5*(real_loss + fake_loss)
