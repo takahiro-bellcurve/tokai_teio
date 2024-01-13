@@ -17,7 +17,6 @@ from src.lib.model_operator import ModelOperator
 from src.lib.create_data_loader import create_data_loader
 
 MODEL_NAME = "aae_v0"
-DATASET_DIR = 'preprocessed_images_512'
 SEND_WANDB = True
 
 #######################################################
