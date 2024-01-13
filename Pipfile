@@ -20,6 +20,7 @@ streamlit = "*"
 pinecone-client = "*"
 google-cloud-storage = "*"
 umap-learn = "*"
+ultralytics = "*"
 
 [dev-packages]
 
