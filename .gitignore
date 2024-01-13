@@ -1,3 +1,5 @@
+yolov8n.pt
+
 *.onnx
 *.onnx.prototxt
 
