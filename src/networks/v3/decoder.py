@@ -24,6 +24,7 @@ class Decoder(nn.Module):
         self.tanh = nn.Tanh()
 
     def forward(self, z):
+        print("decoder")
         x = self.linear1(z)
         print(f"linear1: {x.shape}") if self.exec_count == False else None
         x = self.leakyrelu(x)
