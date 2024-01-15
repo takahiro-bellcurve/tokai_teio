@@ -23,6 +23,7 @@ class Encoder(nn.Module):
         self.leakyrelu = nn.LeakyReLU(0.2, inplace=True)
 
     def forward(self, img):
+        print("encoder")
         x = self.conv1(img)
         print(f"conv1: {x.shape}") if self.is_fist_execute == False else None
         x = self.leakyrelu(x)

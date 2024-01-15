@@ -20,6 +20,7 @@ df["image_name"] = df["image_url"].apply(lambda x: x.split("/")[-1])
 
 download_df = df[~df['image_name'].isin(files)]
 download_df = download_df.reset_index(drop=True)
+download_df = download_df.iloc[240000:350000]
 
 for i, row in download_df.iterrows():
     if i % 100 == 0:

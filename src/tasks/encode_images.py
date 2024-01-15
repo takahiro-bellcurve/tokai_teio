@@ -12,22 +12,9 @@ import numpy as np
 from src.lib.model_operator import ModelOperator
 from src.lib.setup_logging import setup_logging
 
-
-# config
-ORIGINAL_IMG_DIR = "./data/preprocessed_images_512/"
-
 # Logger
 setup_logging()
 logger = logging.getLogger(__name__)
-
-
-def create_file_name(row):
-    return row["image_url"].split("/")[-1]
-
-
-def delete_unexist_images(df, img_list):
-    df = df[df["file_name"].isin(img_list)]
-    return df
 
 
 def main():
@@ -46,13 +33,10 @@ def main():
     img_size = model_info["img_size"]
     latent_dim = model_info["latent_dim"]
 
-    img_list = os.listdir(ORIGINAL_IMG_DIR)
-    df = pd.read_csv("./data/zozotown_goods_images_100000.csv")
-    df["file_name"] = df.apply(create_file_name, axis=1)
-    df = delete_unexist_images(df, img_list)
-    df.reset_index(drop=True, inplace=True)
-    image_data = df[['id', 'file_name',
-                     'image_url']].to_dict(orient='records')
+    df = pd.read_csv("./data/train_data.csv")
+    train_images = os.listdir("./data/train_data")
+    df = df[df["file_name"].isin(train_images)]
+    image_data = df.to_dict(orient='records')
 
     device = ModelOperator.get_device()
     model = ModelOperator.get_encoder_model(
@@ -67,10 +51,18 @@ def main():
     for i, row in enumerate(image_data):
         if i % 1000 == 0:
             logger.info(f"{i} images encoded")
-        image_path = ORIGINAL_IMG_DIR + row["file_name"]
+        image_path = "data/train_data/" + row["file_name"]
         vector = ModelOperator.encode_image(model, image_path,
                                             img_size, preprocess=False, device=device)
-        vectors.append(vector)
+        record = {
+            "image_id": row["image_id"],
+            "image_url": row["image_url"],
+            "file_name": row["file_name"],
+            "category_name": row["category_name"],
+            "child_category_name": row["child_category_name"],
+            "vector": vector
+        }
+        vectors.append(record)
     vectors = np.array(vectors).reshape(len(vectors), -1)
     with open(f'./trained_models/vectors/{model_name}.pkl', 'wb') as f:
         pickle.dump(vectors, f)
