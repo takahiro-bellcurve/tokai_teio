@@ -71,7 +71,7 @@ if upload_image is not None:
         image = ImagePreprocessor.open_image(upload_image)
         image = ImagePreprocessor.remove_background(image)
         image = ImagePreprocessor.fill_white_background(image)
-        image = ImagePreprocessor.resize(image, 200, 200)
+        image = ImagePreprocessor.resize(image, 64, 64)
         st.image(image, width=200)
 
 if upload_image:
