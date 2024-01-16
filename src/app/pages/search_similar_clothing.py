@@ -74,7 +74,7 @@ def search_similar_image(upload_image, model_name):
     index = pinecone.Index("tokai-teio")
     vector = encode_image(model, upload_image, model_info["img_size"])
     indexes = index.query(
-        vector=vector[0].tolist(), top_k=6, include_metadata=True)
+        vector=vector[0].tolist(), top_k=3, include_metadata=True)
 
     similar_image_urls = []
     for row in indexes["matches"]:
@@ -95,6 +95,6 @@ if "similar_images" in st.session_state:
         for img in display_images[:3]:
             st.image(img)
 
-    with col2:
-        for img in display_images[3:]:
-            st.image(img)
+    # with col2:
+    #     for img in display_images[3:]:
+    #         st.image(img)
